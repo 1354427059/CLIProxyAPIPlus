@@ -94,7 +94,7 @@ func (h *Handler) ListOrchidsTokens(c *gin.Context) {
 			continue
 		}
 		if !strings.EqualFold(auth.Provider, "orchids") {
-			if auth.Metadata == nil || !strings.EqualFold(stringValue(auth.Metadata["type"]), "orchids") {
+			if auth.Metadata == nil || !strings.EqualFold(stringValue(auth.Metadata, "type"), "orchids") {
 				continue
 			}
 		}
@@ -103,7 +103,7 @@ func (h *Handler) ListOrchidsTokens(c *gin.Context) {
 			Label: auth.Label,
 		}
 		if auth.Metadata != nil {
-			item.ImportedAt = stringValue(auth.Metadata["imported_at"])
+			item.ImportedAt = stringValue(auth.Metadata, "imported_at")
 		}
 		if item.Label == "" {
 			item.Label = "orchids"
@@ -117,14 +117,4 @@ func (h *Handler) ListOrchidsTokens(c *gin.Context) {
 		"timestamp":  time.Now().UTC().Format(time.RFC3339),
 		"auth-count": len(items),
 	})
-}
-
-func stringValue(v any) string {
-	if v == nil {
-		return ""
-	}
-	if s, ok := v.(string); ok {
-		return s
-	}
-	return ""
 }
