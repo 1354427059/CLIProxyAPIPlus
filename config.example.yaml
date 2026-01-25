@@ -166,6 +166,19 @@ codex-instructions-enabled: false
 #    profile-arn: "arn:aws:codewhisperer:us-east-1:..."
 #    proxy-url: "socks5://proxy.example.com:1080" # optional: proxy override
 
+# Orchids configuration (manual token import via /v0/management/orchids/import-token)
+#orchids:
+#  ws-endpoint: "wss://orchids-v2-alpha-108292236521.europe-west1.run.app/agent/ws/coding-agent"
+#  clerk-client-endpoint: "https://clerk.orchids.app/v1/client"
+#  clerk-token-endpoint: "https://clerk.orchids.app/v1/client/sessions/{sessionId}/tokens"
+#  clerk-js-version: "5.114.0"
+#  origin: "https://www.orchids.app"
+#  user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+#  default-model: "claude-sonnet-4-5"
+#  request-timeout-seconds: 120
+#  token-refresh-buffer-seconds: 300
+#  min-refresh-interval-millis: 1000
+
 # OpenAI compatibility providers
 # openai-compatibility:
 #   - name: "openrouter" # The name of the provider; it will be used in the user agent and other places.

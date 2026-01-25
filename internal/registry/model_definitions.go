@@ -862,6 +862,7 @@ func LookupStaticModelInfo(modelID string) *ModelInfo {
 		GetOpenAIModels(),
 		GetQwenModels(),
 		GetIFlowModels(),
+		GetOrchidsModels(),
 	}
 	for _, models := range allModels {
 		for _, m := range models {
@@ -1238,6 +1239,57 @@ func GetKiroModels() []*ModelInfo {
 			ContextLength:       200000,
 			MaxCompletionTokens: 64000,
 			Thinking:            &ThinkingSupport{Min: 1024, Max: 32000, ZeroAllowed: true, DynamicAllowed: true},
+		},
+	}
+}
+
+// GetOrchidsModels returns the Orchids model definitions.
+func GetOrchidsModels() []*ModelInfo {
+	return []*ModelInfo{
+		{
+			ID:          "claude-sonnet-4-5",
+			Object:      "model",
+			Created:     0,
+			OwnedBy:     "orchids",
+			Type:        "orchids",
+			DisplayName: "Orchids Claude Sonnet 4.5",
+			Description: "Claude Sonnet 4.5 via Orchids",
+		},
+		{
+			ID:          "claude-opus-4.5",
+			Object:      "model",
+			Created:     0,
+			OwnedBy:     "orchids",
+			Type:        "orchids",
+			DisplayName: "Orchids Claude Opus 4.5",
+			Description: "Claude Opus 4.5 via Orchids",
+		},
+		{
+			ID:          "claude-haiku-4-5",
+			Object:      "model",
+			Created:     0,
+			OwnedBy:     "orchids",
+			Type:        "orchids",
+			DisplayName: "Orchids Claude Haiku 4.5",
+			Description: "Claude Haiku 4.5 via Orchids",
+		},
+		{
+			ID:          "gemini-3-flash",
+			Object:      "model",
+			Created:     0,
+			OwnedBy:     "orchids",
+			Type:        "orchids",
+			DisplayName: "Orchids Gemini 3 Flash",
+			Description: "Gemini 3 Flash via Orchids",
+		},
+		{
+			ID:          "gpt-5.2",
+			Object:      "model",
+			Created:     0,
+			OwnedBy:     "orchids",
+			Type:        "orchids",
+			DisplayName: "Orchids GPT-5.2",
+			Description: "GPT-5.2 via Orchids",
 		},
 	}
 }

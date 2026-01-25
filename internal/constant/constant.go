@@ -27,4 +27,7 @@ const (
 
 	// Kiro represents the AWS CodeWhisperer (Kiro) provider identifier.
 	Kiro = "kiro"
+
+	// Orchids represents the Orchids provider identifier.
+	Orchids = "orchids"
 )

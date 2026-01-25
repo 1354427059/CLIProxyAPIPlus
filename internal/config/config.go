@@ -86,6 +86,9 @@ type Config struct {
 	// Values: "ide" (default, CodeWhisperer) or "cli" (Amazon Q).
 	KiroPreferredEndpoint string `yaml:"kiro-preferred-endpoint" json:"kiro-preferred-endpoint"`
 
+	// Orchids config controls endpoints and defaults for the Orchids provider.
+	Orchids OrchidsConfig `yaml:"orchids" json:"orchids"`
+
 	// Codex defines a list of Codex API key configurations as specified in the YAML configuration file.
 	CodexKey []CodexKey `yaml:"codex-api-key" json:"codex-api-key"`
 
@@ -446,6 +449,30 @@ type KiroKey struct {
 	PreferredEndpoint string `yaml:"preferred-endpoint,omitempty" json:"preferred-endpoint,omitempty"`
 }
 
+// OrchidsConfig represents Orchids provider defaults.
+type OrchidsConfig struct {
+	// EndpointWS is the Orchids WebSocket endpoint.
+	EndpointWS string `yaml:"ws-endpoint,omitempty" json:"ws-endpoint,omitempty"`
+	// ClerkClientEndpoint is the Clerk client endpoint for session discovery.
+	ClerkClientEndpoint string `yaml:"clerk-client-endpoint,omitempty" json:"clerk-client-endpoint,omitempty"`
+	// ClerkTokenEndpoint is the Clerk token endpoint for session tokens.
+	ClerkTokenEndpoint string `yaml:"clerk-token-endpoint,omitempty" json:"clerk-token-endpoint,omitempty"`
+	// ClerkJSVersion tags requests with a Clerk JS version.
+	ClerkJSVersion string `yaml:"clerk-js-version,omitempty" json:"clerk-js-version,omitempty"`
+	// Origin is the Orchids origin header.
+	Origin string `yaml:"origin,omitempty" json:"origin,omitempty"`
+	// UserAgent sets the default user agent for Orchids requests.
+	UserAgent string `yaml:"user-agent,omitempty" json:"user-agent,omitempty"`
+	// DefaultModel is used when incoming requests omit a model.
+	DefaultModel string `yaml:"default-model,omitempty" json:"default-model,omitempty"`
+	// RequestTimeoutSeconds defines request timeout for Orchids HTTP calls.
+	RequestTimeoutSeconds int `yaml:"request-timeout-seconds,omitempty" json:"request-timeout-seconds,omitempty"`
+	// TokenRefreshBufferSeconds defines how early to refresh tokens.
+	TokenRefreshBufferSeconds int `yaml:"token-refresh-buffer-seconds,omitempty" json:"token-refresh-buffer-seconds,omitempty"`
+	// MinRefreshIntervalMillis prevents repeated refresh in a tight loop.
+	MinRefreshIntervalMillis int `yaml:"min-refresh-interval-millis,omitempty" json:"min-refresh-interval-millis,omitempty"`
+}
+
 // OpenAICompatibility represents the configuration for OpenAI API compatibility
 // with external providers, allowing model aliases to be routed through OpenAI API format.
 type OpenAICompatibility struct {
@@ -549,6 +576,16 @@ func LoadConfigOptional(configFile string, optional bool) (*Config, error) {
 	cfg.AmpCode.RestrictManagementToLocalhost = false // Default to false: API key auth is sufficient
 	cfg.RemoteManagement.PanelGitHubRepository = DefaultPanelGitHubRepository
 	cfg.IncognitoBrowser = false // Default to normal browser (AWS uses incognito by force)
+	cfg.Orchids.EndpointWS = "wss://orchids-v2-alpha-108292236521.europe-west1.run.app/agent/ws/coding-agent"
+	cfg.Orchids.ClerkClientEndpoint = "https://clerk.orchids.app/v1/client"
+	cfg.Orchids.ClerkTokenEndpoint = "https://clerk.orchids.app/v1/client/sessions/{sessionId}/tokens"
+	cfg.Orchids.ClerkJSVersion = "5.114.0"
+	cfg.Orchids.Origin = "https://www.orchids.app"
+	cfg.Orchids.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+	cfg.Orchids.DefaultModel = "claude-sonnet-4-5"
+	cfg.Orchids.RequestTimeoutSeconds = 120
+	cfg.Orchids.TokenRefreshBufferSeconds = 300
+	cfg.Orchids.MinRefreshIntervalMillis = 1000
 	if err = yaml.Unmarshal(data, &cfg); err != nil {
 		if optional {
 			// In cloud deploy mode, if YAML parsing fails, return empty config instead of error.
