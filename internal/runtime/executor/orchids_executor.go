@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/router-for-me/CLIProxyAPI/v6/internal/auth/orchids"
 	"github.com/gorilla/websocket"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/config"
 	"github.com/router-for-me/CLIProxyAPI/v6/internal/thinking"
@@ -26,6 +27,8 @@ import (
 const (
 	orchidsProviderName = "orchids"
 )
+
+var orchidsSessionCache = orchids.NewSessionCache()
 
 // OrchidsExecutor proxies requests to Orchids via WebSocket.
 type OrchidsExecutor struct {
@@ -85,7 +88,7 @@ func (e *OrchidsExecutor) Execute(ctx context.Context, auth *cliproxyauth.Auth, 
 		return resp, err
 	}
 
-	session, err := e.fetchSession(ctx, auth)
+	session, err := ensureOrchidsSession(ctx, e.cfg, auth, e.fetchSession)
 	if err != nil {
 		return resp, err
 	}
@@ -161,7 +164,7 @@ func (e *OrchidsExecutor) ExecuteStream(ctx context.Context, auth *cliproxyauth.
 	go func() {
 		defer close(out)
 
-		session, sessionErr := e.fetchSession(ctx, auth)
+		session, sessionErr := ensureOrchidsSession(ctx, e.cfg, auth, e.fetchSession)
 		if sessionErr != nil {
 			out <- cliproxyexecutor.StreamChunk{Err: sessionErr}
 			return
@@ -229,7 +232,7 @@ func (e *OrchidsExecutor) Refresh(ctx context.Context, auth *cliproxyauth.Auth) 
 	if auth == nil {
 		return nil, statusErr{code: http.StatusUnauthorized, msg: "missing auth"}
 	}
-	session, err := e.fetchSession(ctx, auth)
+	session, err := ensureOrchidsSession(ctx, e.cfg, auth, e.fetchSession)
 	if err != nil {
 		return nil, err
 	}
@@ -263,6 +266,72 @@ type orchidsSession struct {
 	Token     string
 	SessionID string
 	UserID    string
+}
+
+func ensureOrchidsSession(ctx context.Context, cfg *config.Config, auth *cliproxyauth.Auth, fetcher func(context.Context, *cliproxyauth.Auth) (*orchidsSession, error)) (*orchidsSession, error) {
+	if auth == nil {
+		return fetcher(ctx, auth)
+	}
+	if auth.Metadata == nil {
+		auth.Metadata = make(map[string]any)
+	}
+	cached := stringValue(auth.Metadata, "session_token")
+	if cached != "" {
+		if exp, ok := orchids.ParseJWTExpiry(cached); ok {
+			bufferSeconds := 0
+			if cfg != nil {
+				bufferSeconds = cfg.Orchids.TokenRefreshBufferSeconds
+			}
+			buffer := time.Duration(bufferSeconds) * time.Second
+			if time.Now().Add(buffer).Before(exp) {
+				return &orchidsSession{
+					Token:     cached,
+					SessionID: stringValue(auth.Metadata, "session_id"),
+					UserID:    stringValue(auth.Metadata, "session_user_id"),
+				}, nil
+			}
+		}
+	}
+
+	minIntervalMillis := 0
+	if cfg != nil {
+		minIntervalMillis = cfg.Orchids.MinRefreshIntervalMillis
+	}
+	minInterval := time.Duration(minIntervalMillis) * time.Millisecond
+	if minInterval > 0 && !orchidsSessionCache.CanRefresh(auth.ID, minInterval) {
+		if cached != "" {
+			return &orchidsSession{
+				Token:     cached,
+				SessionID: stringValue(auth.Metadata, "session_id"),
+				UserID:    stringValue(auth.Metadata, "session_user_id"),
+			}, nil
+		}
+	}
+
+	result, err := orchidsSessionCache.Do(auth.ID, func() (any, error) {
+		return fetcher(ctx, auth)
+	})
+	if err != nil {
+		return nil, err
+	}
+	session, ok := result.(*orchidsSession)
+	if !ok {
+		return nil, fmt.Errorf("orchids executor: invalid session result")
+	}
+
+	auth.Metadata["session_token"] = session.Token
+	if session.SessionID != "" {
+		auth.Metadata["session_id"] = session.SessionID
+	}
+	if session.UserID != "" {
+		auth.Metadata["session_user_id"] = session.UserID
+	}
+	if exp, ok := orchids.ParseJWTExpiry(session.Token); ok {
+		auth.Metadata["expires_at"] = exp.UTC().Format(time.RFC3339)
+	}
+	auth.Metadata["last_refreshed_at"] = time.Now().UTC().Format(time.RFC3339)
+	auth.LastRefreshedAt = time.Now().UTC()
+	return session, nil
 }
 
 func (e *OrchidsExecutor) fetchSession(ctx context.Context, auth *cliproxyauth.Auth) (*orchidsSession, error) {
